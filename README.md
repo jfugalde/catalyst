@@ -74,7 +74,7 @@ cd my-faster-storefront && npm run dev
 
 Learn more about Catalyst at [catalyst.dev](https://catalyst.dev).
 
-## Resources
+## Resources 
 
 - [Catalyst Documentation](https://catalyst.dev/docs/)
 - [GraphQL Storefront API Playground](https://developer.bigcommerce.com/graphql-storefront/playground)
