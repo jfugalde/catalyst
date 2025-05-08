@@ -232,18 +232,15 @@ class Client<FetcherRequestInit extends RequestInit = RequestInit> {
     return response.text();
   }
 
-  private async getCanonicalUrl(channelId?: string) {
-    const resolvedChannelId = channelId ?? (await this.getChannelId(this.defaultChannelId));
-
-    return `https://store-${this.config.storeHash}-${resolvedChannelId}.${graphqlApiDomain}`;
+  private getCanonicalUrl(channelId?: string) {
+    return (
+      process.env.BIGCOMMERCE_CANONICAL_URL ??
+      `https://store-${this.config.storeHash}-${channelId ?? this.defaultChannelId}.${graphqlApiDomain}`
+    );
   }
 
-  private async getGraphQLEndpoint(
-    channelId?: string,
-    operationName?: string,
-    operationType?: string,
-  ) {
-    const baseUrl = new URL(`${await this.getCanonicalUrl(channelId)}/graphql`);
+  private getGraphQLEndpoint(channelId?: string, operationName?: string, operationType?: string) {
+    const baseUrl = new URL(`${this.getCanonicalUrl(channelId)}/graphql`);
 
     if (operationName) {
       baseUrl.searchParams.set('operation', operationName);

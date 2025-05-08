@@ -31,16 +31,23 @@ const getToken = () => {
 };
 
 const getEndpoint = () => {
+  const customFull = process.env.FULL_GRAPHQL_ENDPOINT;
+
+  if (customFull) return customFull;
+
   const storeHash = getStoreHash();
   const channelId = getChannelId();
+  const domain = graphqlApiDomain;
 
-  // Not all sites have the channel-specific canonical URL backfilled.
-  // Wait till MSF-2643 is resolved before removing and simplifying the endpoint logic.
-  if (!channelId || channelId === '1') {
-    return `https://store-${storeHash}.${graphqlApiDomain}/graphql`;
+  if (domain.includes(storeHash)) {
+    return `https://${domain}/graphql`;
   }
 
-  return `https://store-${storeHash}-${channelId}.${graphqlApiDomain}/graphql`;
+  if (!channelId || channelId === '1') {
+    return `https://store-${storeHash}.${domain}/graphql`;
+  }
+
+  return `https://store-${storeHash}-${channelId}.${domain}/graphql`;
 };
 
 const generate = async () => {
