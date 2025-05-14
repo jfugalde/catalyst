@@ -11,21 +11,24 @@ import {
 } from '@conform-to/react';
 import { getZodConstraint, parseWithZod } from '@conform-to/zod';
 import { createSerializer, parseAsString, useQueryStates } from 'nuqs';
-import { ReactNode, useActionState, useCallback, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
+import { ReactNode, startTransition, useActionState, useCallback, useEffect } from 'react';
+import { requestFormReset, useFormStatus } from 'react-dom';
 import { z } from 'zod';
 
 import { ButtonRadioGroup } from '@/vibes/soul/form/button-radio-group';
 import { CardRadioGroup } from '@/vibes/soul/form/card-radio-group';
 import { Checkbox } from '@/vibes/soul/form/checkbox';
+import { DatePicker } from '@/vibes/soul/form/date-picker';
 import { FormStatus } from '@/vibes/soul/form/form-status';
 import { Input } from '@/vibes/soul/form/input';
 import { NumberInput } from '@/vibes/soul/form/number-input';
 import { RadioGroup } from '@/vibes/soul/form/radio-group';
 import { Select } from '@/vibes/soul/form/select';
 import { SwatchRadioGroup } from '@/vibes/soul/form/swatch-radio-group';
+import { Textarea } from '@/vibes/soul/form/textarea';
 import { Button } from '@/vibes/soul/primitives/button';
 import { toast } from '@/vibes/soul/primitives/toaster';
+import { useEvents } from '~/components/analytics/events';
 import { usePathname, useRouter } from '~/i18n/routing';
 
 import { Field, schema, SchemaRawShape } from './schema';
@@ -69,6 +72,7 @@ export function ProductDetailForm<F extends Field>({
 }: ProductDetailFormProps<F>) {
   const router = useRouter();
   const pathname = usePathname();
+  const events = useEvents();
 
   const searchParams = fields.reduce<Record<string, typeof parseAsString>>((acc, field) => {
     return field.persist === true ? { ...acc, [field.name]: parseAsString } : acc;
@@ -116,6 +120,16 @@ export function ProductDetailForm<F extends Field>({
     constraint: getZodConstraint(schema(fields)),
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: schema(fields) });
+    },
+    onSubmit(event, { formData }) {
+      event.preventDefault();
+
+      startTransition(() => {
+        requestFormReset(event.currentTarget);
+        formAction(formData);
+
+        events.onAddToCart?.(formData);
+      });
     },
     // @ts-expect-error: `defaultValue` types are conflicting with `onValidate`.
     defaultValue,
@@ -187,6 +201,7 @@ function SubmitButton({ children, disabled }: { children: ReactNode; disabled?: 
   );
 }
 
+// eslint-disable-next-line complexity
 function FormField({
   field,
   formField,
@@ -207,7 +222,7 @@ function FormField({
   const handleChange = useCallback(
     (value: string) => {
       // Ensure that if page is reached without a full reload, we are still setting the selection properly based on query params.
-      const fieldValue = value || String(params[field.name]);
+      const fieldValue = value || String(params[field.name] ?? '');
 
       void setParams({ [field.name]: fieldValue });
       controls.change(fieldValue);
@@ -245,6 +260,38 @@ function FormField({
           errors={formField.errors}
           key={formField.id}
           label={field.label}
+          name={formField.name}
+          onBlur={controls.blur}
+          onChange={(e) => handleChange(e.currentTarget.value)}
+          onFocus={controls.focus}
+          required={formField.required}
+          value={controls.value ?? ''}
+        />
+      );
+
+    case 'date':
+      return (
+        <DatePicker
+          defaultValue={controls.value}
+          errors={formField.errors}
+          key={formField.id}
+          label={field.label}
+          name={formField.name}
+          onBlur={controls.blur}
+          onChange={(e) => handleChange(e.currentTarget.value)}
+          onFocus={controls.focus}
+          required={formField.required}
+        />
+      );
+
+    case 'textarea':
+      return (
+        <Textarea
+          errors={formField.errors}
+          key={formField.id}
+          label={field.label}
+          maxLength={field.maxLength}
+          minLength={field.minLength}
           name={formField.name}
           onBlur={controls.blur}
           onChange={(e) => handleChange(e.currentTarget.value)}
